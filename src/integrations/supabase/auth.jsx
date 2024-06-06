@@ -18,12 +18,15 @@ export const SupabaseAuthProvider = ({ children }) => {
 
 export const SupabaseAuthProviderInner = ({ children }) => {
   const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);  // Add loading state
   const queryClient = useQueryClient();
 
   useEffect(() => {
     const getSession = async () => {
+      setLoading(true);  // Set loading to true at the start of session fetching
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      setLoading(false);  // Set loading to false after session is fetched
     };
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -35,6 +38,7 @@ export const SupabaseAuthProviderInner = ({ children }) => {
 
     return () => {
       authListener.subscription.unsubscribe();
+      setLoading(false);  // Ensure loading is set to false when the component unmounts
     };
   }, [queryClient]);
 
@@ -42,11 +46,12 @@ export const SupabaseAuthProviderInner = ({ children }) => {
     await supabase.auth.signOut();
     setSession(null);
     queryClient.invalidateQueries('user');
+    setLoading(false);  // Reset loading state on logout
   };
 
   return (
-    <SupabaseAuthContext.Provider value={{ session, logout }}>
-    {children}
+    <SupabaseAuthContext.Provider value={{ session, loading, logout }}>
+      {children}
     </SupabaseAuthContext.Provider>
   );
 };
